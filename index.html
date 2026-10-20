@@ -75,7 +75,11 @@ button:disabled{opacity:.5;cursor:default}
 .cands{margin-top:14px;display:none}
 #runBtn{white-space:nowrap}
 .candSummary{display:none;font-size:14px;color:var(--ink-2)}
-.cands.collapsed #candList,.cands.collapsed #tickAllRow,.cands.collapsed #candHint{display:none!important}
+.cands.collapsed #candList,.cands.collapsed #candTools,.cands.collapsed #candHint{display:none!important}
+.candTools{display:none;align-items:center;justify-content:flex-start;gap:8px 14px;flex-wrap:wrap;margin-bottom:8px}
+.candTools .tickAllRow{margin-bottom:0!important}
+.candTools .toggle{padding:5px 12px;font-size:13.5px}
+#candShow[hidden]{display:none!important}
 .cands.foldable .candSummary{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .cands.foldable:not(.collapsed) .candSummary{margin-bottom:10px}
 .cand{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
@@ -98,6 +102,12 @@ details.opts{margin-top:14px}
 details.opts summary{cursor:pointer;font-size:13.5px;color:var(--ink-2);font-weight:600}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:12px}
 .grid .f small{display:block;color:var(--ink-3);font-size:12px;margin-top:4px}
+.grid .keyHelp{grid-column:1/-1;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
+  padding:14px 20px;font-size:14px;line-height:1.55;color:var(--ink-2)}
+.grid .keyHelp b{color:var(--ink)}
+.grid .keyHelp sup{font-size:11px;line-height:0}
+.grid .keyHelp ul{margin:4px 0 0 0;padding:0 0 0 22px}
+.grid .keyHelp ol{margin:2px 0 0 0;padding:0 0 0 22px}
 .chk{display:flex;gap:8px;align-items:flex-start;font-size:14px}
 .status{display:none}
 .stats{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0 4px}
@@ -235,7 +245,7 @@ body.explain-only header h1{margin-bottom:18px}
   <header>
     <div class="headtop">
       <div class="headtext">
-      <h1>Sheldrick Number Calculator <span class="ver" title="Page version (UTC build time)">202610191750</span></h1>
+      <h1>Sheldrick Number Calculator <span class="ver" title="Page version (UTC build time)">202610201723</span></h1>
       <p>The Sheldrick number (GMSN) shows how many co-authorship steps separate someone from <a
         href="https://en.wikipedia.org/wiki/George_M._Sheldrick" target="_blank" rel="noopener">George M. Sheldrick</a>
         (1942–2025). It is analogous to the Erdős number, but for crystallographers.</p>
@@ -557,12 +567,17 @@ KgYxKjkJAuCL0YE95Ogg/Q0KFQSNut5wmISBO1ChQrjj/9k=">
       <dt>Vintage</dt>
       <dd>The first year a chain of this length to Sheldrick existed. For each link it takes the year of that
         pair's first joint work. A chain only exists once all its links do, so the chain dates from its latest link.
-        The person's vintage is the earliest such year across all shortest chains. For a direct co-author it is the
-        year of their first joint publication with Sheldrick.</dd>
+        The person's vintage is the earliest such year across all shortest chains. A pair's first year is known only
+        when all its joint works have a publication year. If some do not, the earliest dated one is only the latest
+        possible first year, because an undated work may be earlier; a pair with no dated joint work has no known first
+        year at all. When this leaves the vintage uncertain, the page shows the range it must lie in (for example
+        1985–1992) or a bound (≤ 1992). For a direct co-author it is the year of their first joint publication with
+        Sheldrick.</dd>
       <dt>Chains of people</dt>
       <dd>How many different sequences of people of the minimum length lead to Sheldrick. Each chain counts once,
-        however many papers support its links. This is the better measure of robustness: two chains through different
-        colleagues are two independent routes, and the person stays connected if either one is removed. Shown for GMSN
+        however many papers support its links. This is the better measure of robustness, but the chains are not
+        independent routes: two different chains can share people and links (they may differ in a single person), so
+        removing one person or one link can cut many chains at once. Shown for GMSN
         2 and above; a direct co-author has exactly one chain (straight to Sheldrick), so the page shows their joint
         publications instead.</dd>
       <dt>Paper routes</dt>
@@ -612,18 +627,37 @@ KgYxKjkJAuCL0YE95Ogg/Q0KFQSNut5wmISBO1ChQrjj/9k=">
         carry it, so records the same person is split across are searched too. Someone with more than 10,000 works is
         read year range by year range. For every query, the number of works received is checked against the
         number OpenAlex reports; if any are missing, the result says the search was incomplete and shows the
-        GMSN as an upper bound (“GMSN ≤ 3”), because missing works could only add links.</li>
+        GMSN as an upper bound (“GMSN ≤ 3”): missing works can only add links, so they can only shorten the
+        shortest chain. The other figures get no such bound. A missing link may create a shorter chain whose Newman
+        distance, vintage and number of chains have nothing to do with those of the longer chains found, so for an
+        incomplete search they are shown as provisional values, computed from the works that could be read.</li>
       <li><b>Stop when the two sides meet.</b> The search stops as soon as someone it reaches is on Sheldrick's
         co-author list. Sheldrick himself is never reached through OpenAlex: every link to him comes from the list, so
         a record the curated bibliography excluded cannot create one. Steps are searched in order, so the first meeting
-        is guaranteed to be a shortest chain. The current step is always finished, so every shortest chain is found and
-        the Newman distance, vintage and chain counts are exact for the network searched.</li>
+        is guaranteed to be a shortest chain. The current step is always finished, so every shortest chain in the
+        network searched is found, and the Newman distance and chain counts are exact for that network. So is the
+        vintage when every joint work on the shortest chains has a publication year; otherwise the page gives the range
+        it must lie in (see Vintage). The
+        network searched is the co-authorship graph made of the works that were successfully retrieved from OpenAlex,
+        with every link to Sheldrick taken from the curated bibliography. It is not the complete co-authorship record:
+        works OpenAlex does not hold, holds under the wrong person, or reported but did not return are not in it (the
+        last are detected and the result is then marked as incomplete), and the results are exact only relative to
+        it.</li>
       <li><b>Check records that share an ORCID.</b> The search is then repeated with OpenAlex author records that
         carry the same ORCID treated as one person, the searched person's included. These merges are not used for the
         reported numbers, because OpenAlex sometimes attaches an ORCID to the wrong person's record, which would merge
         two people and make the numbers too low. If the merged search gives a lower GMSN, a lower Newman distance or an
-        earlier vintage, the page says so and links the records concerned, so they can be checked by hand. The check
-        searches no deeper than the first answer, and has its own request allowance equal to the budget.</li>
+        earlier vintage, the page says so and links the records concerned, so they can be checked by hand. A shared
+        ORCID can come to light only after two records were already met as separate people, or after a person's works
+        were read; the check is then repeated with those records merged from the start, until a pass finds nothing new
+        (at most 6 passes; replies already received are reused). The check searches no deeper than the first answer,
+        and has its own request allowance equal to the budget. It resolves only the identity questions its rules allow,
+        not every error in OpenAlex's author records: it merges records only through an ORCID that OpenAlex shows on
+        them, so records without an ORCID, or one person under two ORCIDs, stay apart; Sheldrick's co-authors keep the
+        identities the curated list gives them, so the check never merges two of them, and never folds another record
+        into one of them on the strength of an ORCID the list does not hold; it cannot split a record that OpenAlex has
+        wrongly merged; and it looks only at records the search reached. “Would not change these numbers” therefore
+        means: not under these rules.</li>
       <li><b>Rank the chains.</b> While searching, the page records how many works every pair shares, their
         Newman strength and their first joint year. Among the shortest chains it then finds the lowest Newman distance
         and the earliest vintage, and lists chains ordered by Newman distance.</li>
@@ -809,8 +843,11 @@ href="https://sites.google.com/oakland.edu/grossman/home/the-erdoes-number-proje
     <div id="truncNote" class="note" hidden></div>
     <div id="cands" class="cands">
       <div id="candSummary" class="candSummary"></div>
-      <label class="chk tickAllRow" id="tickAllRow"><input id="tickAll" type="checkbox"> Tick all records (only
-        if they are all the same person)</label>
+      <div class="candTools" id="candTools">
+        <label class="chk tickAllRow" id="tickAllRow"><input id="tickAll" type="checkbox"> Tick all records (only
+          if they are all the same person)</label>
+        <button type="button" class="toggle" id="candHide" aria-controls="candList">Hide the candidates</button>
+      </div>
       <div id="candList"></div>
       <div class="hint u-mt6" id="candHint"></div>
     </div>
@@ -854,7 +891,20 @@ href="https://sites.google.com/oakland.edu/grossman/home/the-erdoes-number-proje
             accepts keys. It is not stored, not logged and not written into any download; it is forgotten when the tab
             closes.</small>
         </div>
-        <div class="f">
+        <div class="keyHelp"><b>Getting an API key.</b> You can get a free OpenAlex API key <sup>[<a
+          href="https://help.openalex.org/api/authentication" target="_blank" rel="noopener"
+          title="OpenAlex help: Authentication">1</a>]</sup>:
+          <ul>
+            <li>Directly on the website (takes about 30 seconds):
+              <ol>
+                <li>Go to <a href="https://openalex.org/" target="_blank" rel="noopener">OpenAlex</a> and create a
+                  free account.</li>
+                <li>Navigate to your <a href="https://openalex.org/settings/api-key" target="_blank"
+                  rel="noopener">OpenAlex API Settings</a>.</li>
+                <li>Copy your API key from the Settings → API key section, and paste it into the field above.</li>
+              </ol>
+            </li>
+          </ul>
         </div>
       </div>
     </details>
@@ -3703,7 +3753,8 @@ class Client {
         const res = d.results || [];
         found.push(...res);
         if (d.meta && typeof d.meta.count === "number") total = d.meta.count;
-        if (res.length < PER_PAGE || (total !== null && page * PER_PAGE >= total)) break;
+        if (!res.length || (total === null && res.length < PER_PAGE)) break;
+        if (total !== null && page * PER_PAGE >= total) break;
       }
       if (refused) break; // the endpoint is refusing: leave the rest unanswered rather than
       // retrying 50 ORCIDs at a time, and let the ORCID fallback cover them
@@ -3795,7 +3846,10 @@ class Client {
             }
             const res = d.results || [];
             yield* take(res);
-            if (res.length < PER_PAGE || page * PER_PAGE >= Math.min(total ?? Infinity, PAGED_MAX)) break;
+            // A short page ends the query only when OpenAlex gave no count; with a count, the next page
+            // is still read, so a page that came back short does not cut off the rest.
+            if (!res.length || (total === null && res.length < PER_PAGE)) break;
+            if (page * PER_PAGE >= Math.min(total ?? Infinity, PAGED_MAX)) break;
           }
           if (!split && total !== null && total > PAGED_MAX) {
             this.truncated = (this.truncated || 0) + 1;
@@ -3851,16 +3905,17 @@ function curatedEdge(p, mode) {
   if (!its.length) return null;
   let nw = 0,
     fy = null,
-    ly = null;
+    ly = null,
+    nu = 0; // joint items without a year
   for (const k of its) {
     const [y, , n] = ITEMS[k];
     nw += 1 / Math.max(1, n - 1);
     if (y) {
       if (fy === null || y < fy) fy = y;
       if (ly === null || y > ly) ly = y;
-    }
+    } else nu++;
   }
-  return {w: its.length, nw, fy, ly, items: its};
+  return {w: its.length, nw, fy, ly, nu, items: its};
 }
 function sheldrickSide(mode) {
   const distS = new Map([[GMS, 0]]),
@@ -3967,11 +4022,17 @@ async function computeGMSN(client, seedIds, seedOrcids, side, opt, ui) {
   const alias = new Map(); // ticked OpenAlex record -> the node it is folded into
   const skippedAbstracts = new Set();
   // ORCID check (opt.orcidMerge only): everyone not on Sheldrick's list whose OpenAlex records
-  // carry the same ORCID is taken as one person. A record keeps the node it was first given; the
-  // person's ORCIDs are resolved to all their records when the person is expanded, so a split
-  // record is searched as well. The reported numbers never use this: an ORCID that OpenAlex
-  // attached to the wrong record would merge two people and make the numbers too low.
+  // carry the same ORCID is taken as one person. Within one pass a record keeps the node it was
+  // first given, and the person's ORCIDs are resolved to all their records when the person is
+  // expanded. A shared ORCID can come to light only after two records were already met as
+  // separate people, or after a person was expanded; such cases are listed in the result
+  // (missedMerges), and orcidCheck() runs another pass with the records merged from the start
+  // (opt.orcidGroups), until a pass finds nothing new. The reported numbers never use this: an
+  // ORCID that OpenAlex attached to the wrong record would merge two people and make the numbers
+  // too low.
   const merge = !!opt.orcidMerge;
+  const lateMerges = []; // [node, node] pairs found to share an ORCID after both were built
+  const expandedOrcs = new Map(); // node -> the ORCIDs it was known by when it was expanded
   const orcNode = new Map(); // ORCID -> node
   const recNode = new Map(); // OpenAlex record -> node
   const nodeOrc = new Map(); // node -> its ORCIDs
@@ -4008,6 +4069,33 @@ async function computeGMSN(client, seedIds, seedOrcids, side, opt, ui) {
       const o = sid(seedOrcids[j]);
       if (o) bindOrc(o, node);
     });
+  // Identities settled by an earlier pass of the ORCID check: each group's records are one node
+  // from the start (the searched person's node if the group contains one of their records), all
+  // of them are queried when it is expanded, and its ORCIDs are resolved before that.
+  if (merge && opt.orcidGroups)
+    for (const g of opt.orcidGroups) {
+      const recs = g.recs.filter(r => rowIndex(canon(r, null)) === undefined);
+      if (!recs.length) continue;
+      let node;
+      for (const r of recs) {
+        const n = alias.get(r) ?? recNode.get(r);
+        if (n !== undefined) {
+          node = n;
+          break;
+        }
+      }
+      if (node === undefined) node = recs[0];
+      for (const r of recs) {
+        if (alias.has(r) || recNode.has(r)) continue; // the searched person's own records
+        bindRec(r, node);
+        if (r !== node) {
+          if (!extraIds.has(node)) extraIds.set(node, []);
+          if (!extraIds.get(node).includes(r)) extraIds.get(node).push(r);
+        }
+      }
+      if (!recNode.has(node)) bindRec(node, node);
+      for (const o of g.orcs || []) if (!orcNode.has(o)) bindOrc(o, node);
+    }
   const nodeFor = (raw, orc) => {
     const c = canon(raw, orc);
     if (rowIndex(c) !== undefined) return c;
@@ -4023,7 +4111,9 @@ async function computeGMSN(client, seedIds, seedOrcids, side, opt, ui) {
   };
   const distT = new Map(seeds.map(s => [s, 0]));
   const preds = new Map();
-  const E = new Map(); // edge key -> {w: joint works, nw: Newman strength, fy: first year, ev: [...]}
+  // edge key -> {w: joint works, nw: Newman strength, fy: earliest dated joint work, nu: joint works
+  // without a year, ev: [...]}
+  const E = new Map();
   const seenPair = new Set(),
     seenWork = new Set();
   const orcidRecords = new Map(); // ORCID -> the OpenAlex author records carrying it, per /authors
@@ -4060,7 +4150,10 @@ async function computeGMSN(client, seedIds, seedOrcids, side, opt, ui) {
             // not on the list: only records not already someone else
             if (idToRow.has(id)) continue;
             const cur = recNode.get(id);
-            if (cur !== undefined && cur !== e.node) continue;
+            if (cur !== undefined && cur !== e.node) {
+              if (merge) lateMerges.push([cur, e.node]); // one person, already two nodes
+              continue;
+            }
             if (cur === undefined) bindRec(id, e.node);
           }
           e.ids.push(id);
@@ -4084,10 +4177,49 @@ async function computeGMSN(client, seedIds, seedOrcids, side, opt, ui) {
     return best;
   };
   const merged = () => new Map([...nodeRecs].filter(([, r]) => r.size > 1).map(([n, r]) => [n, [...r]]));
+  // ORCID check: what this pass learnt too late to use. Two nodes that turned out to share an
+  // ORCID (or a record), and people whose ORCID came to light only after they were expanded (so
+  // their other records were not searched), are reported with the identity groups that settle
+  // them; the caller then repeats the search with those groups bound from the start.
+  const identityReview = () => {
+    if (!merge) return {};
+    const up = new Map();
+    const find = x => {
+      while (up.has(x) && up.get(x) !== x) x = up.get(x);
+      return x;
+    };
+    let missed = 0;
+    const union = (a, b) => {
+      if (rowIndex(a) !== undefined || rowIndex(b) !== undefined) return;
+      const ra = find(a),
+        rb = find(b);
+      if (ra === rb) return;
+      up.set(rb, ra);
+      missed++;
+    };
+    for (const [node, orcs] of nodeOrc) for (const o of orcs) union(orcNode.get(o), node);
+    for (const [a, b] of lateMerges) union(a, b);
+    // ORCIDs found only after the person was expanded (their other records were not searched)
+    for (const [node, before] of expandedOrcs) for (const o of nodeOrc.get(node) || []) if (!before.has(o)) missed++;
+    const groups = new Map();
+    for (const [node, recs] of nodeRecs) {
+      if (rowIndex(node) !== undefined) continue;
+      const r = find(node);
+      if (!groups.has(r)) groups.set(r, {recs: new Set(), orcs: new Set()});
+      const g = groups.get(r);
+      for (const x of recs) g.recs.add(x);
+      for (const o of nodeOrc.get(node) || []) g.orcs.add(o);
+    }
+    const orcidGroups = [...groups.values()]
+      .filter(g => g.recs.size > 1 || g.orcs.size)
+      .map(g => ({recs: [...g.recs], orcs: [...g.orcs]}));
+    return {missedMerges: missed, orcidGroups};
+  };
   const done = best =>
     Object.assign(finish(best, seeds, distT, preds, distS, E, names, sEdges), {
       skippedAbstracts: skippedAbstracts.size,
-      merged: merged()
+      merged: merged(),
+      ...identityReview()
     });
 
   let b = bestMeeting();
@@ -4113,6 +4245,7 @@ async function computeGMSN(client, seedIds, seedOrcids, side, opt, ui) {
     // So a person with both kinds of identifier is not fetched twice, and nothing is skipped
     // on the strength of an inference.
     const plan = frontier.map(node => ({node, ...expansionKeys(node, extraIds, merge ? nodeOrc : null)}));
+    if (merge) for (const e of plan) if (rowIndex(e.node) === undefined) expandedOrcs.set(e.node, new Set(e.orcids));
     await resolveIdentities(plan);
     const batches = pick => {
       const out = [];
@@ -4197,12 +4330,13 @@ async function computeGMSN(client, seedIds, seedOrcids, side, opt, ui) {
             seenPair.add(pk);
             let ed = E.get(e);
             if (!ed) {
-              ed = {w: 0, nw: 0, fy: null, ev: []};
+              ed = {w: 0, nw: 0, fy: null, nu: 0, ev: []};
               E.set(e, ed);
             }
             ed.w += 1;
             ed.nw += nw;
-            if (y && (ed.fy === null || y < ed.fy)) ed.fy = y;
+            if (!y) ed.nu++;
+            else if (ed.fy === null || y < ed.fy) ed.fy = y;
             if (!wref) wref = {year: y, title: (w.title || "").trim(), doi: w.doi, id: sid(w.id)};
             ed.ev.push(wref);
             if (!distT.has(v)) {
@@ -4259,7 +4393,8 @@ async function computeGMSN(client, seedIds, seedOrcids, side, opt, ui) {
     E,
     names,
     skippedAbstracts: skippedAbstracts.size,
-    reason: `No connection found up to GMSN = ${opt.maxDepth}.`
+    reason: `No connection found up to GMSN = ${opt.maxDepth}.`,
+    ...identityReview()
   };
 }
 
@@ -4274,44 +4409,65 @@ function linkData(u, v, E, sEdges) {
         `Internal error: ${u === GMS ? v : u} is linked to Sheldrick ` +
           `but is not on the curated list. The result was not computed.`
       );
-    return {w: s.w, nw: s.nw, fy: s.fy, curated: s, works: []};
+    return {w: s.w, nw: s.nw, fy: s.fy, undated: s.nu || 0, curated: s, works: []};
   }
   const ed = E.get(ekey(u, v));
   if (!ed) throw new Error(`Internal error: no recorded link between ${u} and ${v}. The ` + `result was not computed.`);
-  return {w: ed.w, nw: ed.nw, fy: ed.fy, works: ed.ev};
+  return {w: ed.w, nw: ed.nw, fy: ed.fy, undated: ed.nu || 0, works: ed.ev};
 }
 
 function finish(best, seeds, distT, preds, distS, E, names, sEdges) {
   const L = (u, v) => linkData(u, v, E, sEdges);
   const meets = [...distT].filter(([n, dt]) => distS.has(n) && dt + distS.get(n) === best).map(([n]) => n);
 
+  // A link's first year is known exactly only when every joint work on it has a year. Each link
+  // gets bounds on its first year: at most its earliest dated joint work (fyHi; no dated work:
+  // +Infinity, unknown), and at least that same year only when it has no undated joint work
+  // (fyLo; otherwise -Infinity: an undated work may be earlier). A chain's date is the latest
+  // first year of its links and the vintage the earliest date over all shortest chains; both are
+  // monotone in the link years, so computing them with fyHi and with fyLo gives an upper and a
+  // lower bound on the true vintage. It is exact when the two agree.
+  const fyHi = l => (typeof l.fy === "number" ? l.fy : Infinity),
+    fyLo = l => (typeof l.fy === "number" && !l.undated ? l.fy : -Infinity);
+  const yearCmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0); // safe with ±Infinity
   const memoN = new Map(),
     memoV = new Map(),
+    memoVL = new Map(),
     memoC = new Map();
   const bestN = n => {
     if (memoN.has(n)) return memoN.get(n);
     let r;
-    if (distT.get(n) === 0) r = {d: 0, vint: -Infinity, path: [n]};
+    if (distT.get(n) === 0) r = {d: 0, vint: -Infinity, vlo: -Infinity, path: [n]};
     else {
       r = null;
       for (const p of preds.get(n) || []) {
         const bp = bestN(p),
           l = L(p, n);
-        const c = {d: bp.d + 1 / l.nw, vint: Math.max(bp.vint, l.fy || -Infinity), path: [...bp.path, n]};
+        const c = {
+          d: bp.d + 1 / l.nw,
+          vint: Math.max(bp.vint, fyHi(l)),
+          vlo: Math.max(bp.vlo, fyLo(l)),
+          path: [...bp.path, n]
+        };
         if (!r || c.d < r.d - 1e-12 || (Math.abs(c.d - r.d) < 1e-12 && c.vint < r.vint)) r = c;
       }
     }
     memoN.set(n, r);
     return r;
   };
-  const bestV = n => {
-    if (memoV.has(n)) return memoV.get(n);
-    let r = distT.get(n) === 0 ? -Infinity : Infinity;
-    if (distT.get(n) !== 0)
-      for (const p of preds.get(n) || []) r = Math.min(r, Math.max(bestV(p), L(p, n).fy || -Infinity));
-    memoV.set(n, r);
-    return r;
+  // Earliest year by which some shortest chain from the person to n was complete.
+  const bestVBy = (fy, memo) => {
+    const f = n => {
+      if (memo.has(n)) return memo.get(n);
+      let r = distT.get(n) === 0 ? -Infinity : Infinity;
+      if (distT.get(n) !== 0) for (const p of preds.get(n) || []) r = Math.min(r, Math.max(f(p), fy(L(p, n))));
+      memo.set(n, r);
+      return r;
+    };
+    return f;
   };
+  const bestV = bestVBy(fyHi, memoV),
+    bestVL = bestVBy(fyLo, memoVL);
   const countC = n => {
     // chains of people (BigInt: the count can be huge)
     if (memoC.has(n)) return memoC.get(n);
@@ -4331,19 +4487,22 @@ function finish(best, seeds, distT, preds, distS, E, names, sEdges) {
   };
 
   let results = meets.map(m => {
-    let {d, vint, path} = bestN(m);
-    let v = bestV(m);
+    let {d, vint, vlo, path} = bestN(m);
+    let v = bestV(m),
+      vl = bestVL(m);
     if (distS.get(m) === 1) {
       const l = L(m, GMS);
       path = [...path, GMS];
       d += 1 / l.nw;
-      vint = Math.max(vint, l.fy || -Infinity);
-      v = Math.max(v, l.fy || -Infinity);
+      vint = Math.max(vint, fyHi(l));
+      vlo = Math.max(vlo, fyLo(l));
+      v = Math.max(v, fyHi(l));
+      vl = Math.max(vl, fyLo(l));
     }
     const pc = countP(m) * (distS.get(m) === 1 ? BigInt(L(m, GMS).w) : 1n);
-    return {d, vint, v, path, count: countC(m), pcount: pc};
+    return {d, vint, vlo, v, vl, path, count: countC(m), pcount: pc};
   });
-  results.sort((a, b) => a.d - b.d || a.vint - b.vint);
+  results.sort((a, b) => a.d - b.d || yearCmp(a.vint, b.vint));
   const seen = new Set();
   results = results.filter(r => {
     const k = r.path.join(">");
@@ -4355,6 +4514,7 @@ function finish(best, seeds, distT, preds, distS, E, names, sEdges) {
   const nPeopleChains = results.reduce((s, r) => s + r.count, 0n);
   const nChains = results.reduce((s, r) => s + r.pcount, 0n);
   const vintage = results.length ? Math.min(...results.map(r => r.v)) : null;
+  const vintageLow = results.length ? Math.min(...results.map(r => r.vl)) : null;
   const newman = results.length ? results[0].d : null;
   const yr = x => (x === -Infinity || x === Infinity || x === null ? null : x);
 
@@ -4362,7 +4522,8 @@ function finish(best, seeds, distT, preds, distS, E, names, sEdges) {
     ids: r.path,
     people: r.path.map(x => names.get(x) || x),
     newman: r.d,
-    vintage: yr(r.vint),
+    vintage: yr(r.vint), // null when a link of this chain has no dated joint work
+    vintageNotBefore: r.vint === r.vlo ? undefined : yr(r.vlo),
     steps: r.path.slice(1).map((v, i) => {
       const u = r.path[i];
       return {from: u, to: v, ...L(u, v)};
@@ -4392,7 +4553,23 @@ function finish(best, seeds, distT, preds, distS, E, names, sEdges) {
     }
   }
   const dij = dijkstra(seeds, E, sEdges);
-  return {gmsn: best, newman, vintage: yr(vintage), nChains, nPeopleChains, paths, chainEdges, explored: dij, E, names};
+  return {
+    gmsn: best,
+    newman,
+    // vintage: earliest year by which a shortest chain whose links are all dated was complete
+    // (null if there is none). It is exact when vintageExact; otherwise the true vintage lies
+    // between vintageNotBefore (null: unknown) and vintage (null: unknown).
+    vintage: yr(vintage),
+    vintageExact: vintage === vintageLow,
+    vintageNotBefore: yr(vintageLow),
+    nChains,
+    nPeopleChains,
+    paths,
+    chainEdges,
+    explored: dij,
+    E,
+    names
+  };
 }
 
 function dijkstra(seeds, E, sEdges) {
@@ -4487,8 +4664,11 @@ function opts() {
     apiKey: $("apikey").value.trim()
   };
 }
-// Every search finishes the step in which it meets Sheldrick's co-authors, so every shortest
-// chain is found and the Newman distance, vintage and chain counts are exact for the network searched.
+// Every search finishes the step in which it meets Sheldrick's co-authors, so every shortest chain
+// in the network searched is found, and the Newman distance and chain counts are exact for that
+// network (the works retrieved from OpenAlex plus the curated bibliography). The vintage is exact
+// for it only when every joint work on the shortest chains has a publication year; otherwise it is
+// given as bounds (finish(): vintageExact, vintageNotBefore).
 // (OpenAlex replaced its e-mail "polite pool" with API keys in 2026 and ignores the mailto
 // parameter, so the page no longer asks for an e-mail address or stores anything locally.)
 $("count").addEventListener("change", () => {
@@ -4535,6 +4715,7 @@ async function search() {
   $("opts").open = false; // fold Options away once a search starts
   $("searchBtn").disabled = true;
   $("candList").innerHTML = `<div class="hint">Searching OpenAlex…</div>`;
+  $("candTools").style.display = "none";
   $("cands").style.display = "block";
   expandCands();
   $("cands").classList.remove("foldable");
@@ -4554,7 +4735,7 @@ async function search() {
     }
     lastHits = hits || [];
     // Ticks carry over only when the same query is run again (or the Definition is changed);
-    // a different query starts from a fresh selection with its first candidate ticked.
+    // a different query starts with nothing ticked.
     if (q !== lastQuery) selected = [];
     lastQuery = q;
     renderCands(lastHits);
@@ -4578,14 +4759,25 @@ function curatedResult(i, mode) {
     node = "R" + i;
   const s = curatedEdge(p, mode); // works for rows the search cannot reach
   if (!s) return null; // not GMSN = 1 under this definition
-  const step = {from: node, to: GMS, w: s.w, nw: s.nw, fy: s.fy, curated: s, works: []};
+  const step = {from: node, to: GMS, w: s.w, nw: s.nw, fy: s.fy, undated: s.nu || 0, curated: s, works: []};
   return {
     gmsn: 1,
     newman: 1 / s.nw,
     vintage: s.fy,
+    vintageExact: s.fy !== null && !s.nu,
+    vintageNotBefore: s.nu ? null : s.fy,
     nChains: BigInt(s.w),
     nPeopleChains: 1n,
-    paths: [{ids: [node, GMS], people: [p.name, GMS_NAME], newman: 1 / s.nw, vintage: s.fy, steps: [step]}],
+    paths: [
+      {
+        ids: [node, GMS],
+        people: [p.name, GMS_NAME],
+        newman: 1 / s.nw,
+        vintage: s.fy,
+        vintageNotBefore: s.nu ? null : undefined,
+        steps: [step]
+      }
+    ],
     chainEdges: [step],
     explored: null,
     E: new Map(),
@@ -4702,6 +4894,7 @@ function renderCands(hits) {
       .querySelectorAll(".curatedBtn")
       .forEach(b => b.addEventListener("click", () => showCuratedResult(+b.dataset.row)));
   if (!hits.length) {
+    $("candTools").style.display = "none";
     $("candList").innerHTML =
       notice +
       (`<div class="hint">No OpenAlex author found. Try another spelling, ` + `an ORCID, or an OpenAlex ID.</div>`);
@@ -4714,7 +4907,7 @@ function renderCands(hits) {
   $("candList").innerHTML =
     notice +
     hits
-      .map((h, i) => {
+      .map(h => {
         const id = sid(h.id),
           orcid = sid(h.orcid || "");
         candNames.set(id, h.display_name);
@@ -4732,7 +4925,8 @@ function renderCands(hits) {
         ]
           .filter(Boolean)
           .join(" · ");
-        const chk = prev.size ? prev.has(id) : i === 0;
+        // Nothing is ticked for a new search: the person picks their own record(s).
+        const chk = prev.has(id);
         return (
           `<label class="cand"><input type="checkbox" value="${esc(id)}" ` +
           `${chk ? "checked" : ""}>
@@ -4746,6 +4940,8 @@ function renderCands(hits) {
     .querySelectorAll("input")
     .forEach(c => c.addEventListener("change", updateSel));
   $("tickAllRow").style.display = hits.length > 1 ? "flex" : "none";
+  $("candTools").style.display = "flex";
+  $("candHide").textContent = candLabel("Hide", hits.length);
   updateSel();
 }
 function curatedConflict(sel) {
@@ -4753,8 +4949,8 @@ function curatedConflict(sel) {
   return rows.length > 1 ? rows : null;
 }
 function updateSel() {
+  const boxes = [...$("candList").querySelectorAll("input[type=checkbox]")];
   {
-    const boxes = [...$("candList").querySelectorAll("input[type=checkbox]")];
     const ta = $("tickAll");
     if (ta) {
       ta.checked = boxes.length > 0 && boxes.every(b => b.checked);
@@ -4774,6 +4970,8 @@ function updateSel() {
       `, who are different co-authors on Sheldrick's list, so they ` +
       `cannot be one person. Untick the records of all but one of them.`;
   else if (selected.length > 1) hint = `${selected.length} records will be treated as one person.`;
+  else if (!selected.length && boxes.length)
+    hint = "Tick the record or records that belong to this person, then calculate the Sheldrick number.";
   $("candHint").textContent = hint;
 }
 
@@ -4806,6 +5004,7 @@ function summarizeIncomplete(list) {
     read = list.reduce((t, x) => t + x.read, 0);
   return {queries: list.length, expected, read, missing: expected - read};
 }
+const ORCID_CHECK_PASSES = 6; // searches the ORCID check may run before it reports itself unsettled
 async function orcidCheck(client, seedOrcs, side, o, res, nMain = 0) {
   if (res.gmsn !== null && res.gmsn <= 1) return null;
   $("statusText").textContent = "Checking OpenAlex records that share an ORCID…";
@@ -4813,9 +5012,28 @@ async function orcidCheck(client, seedOrcs, side, o, res, nMain = 0) {
   client.budget = client.attempted + o.budget;
   const o2 = {...o, orcidMerge: true, maxDepth: res.gmsn === null ? o.maxDepth : res.gmsn};
   const r0 = client.requests;
-  let m;
+  let m,
+    nInc = nMain,
+    unsettled = false;
   try {
-    m = await computeGMSN(client, selected, seedOrcs, side, o2, ui);
+    // A shared ORCID found only after two records were met as separate people (or after a
+    // person was expanded) is taken into the next pass from the start, until a pass learns
+    // nothing new. Replies already received are reused, so a repeat costs few requests.
+    let groups = [];
+    for (let pass = 1; ; pass++) {
+      nInc = (client.incomplete || []).length;
+      m = await computeGMSN(client, selected, seedOrcs, side, {...o2, orcidGroups: groups}, ui);
+      if (!m.missedMerges) break;
+      if (pass >= ORCID_CHECK_PASSES) {
+        unsettled = true;
+        break;
+      }
+      ui.log(
+        `ORCID check: ${fmt(m.missedMerges)} shared ORCID(s) came to light only after the records ` +
+          `concerned had been searched as separate people; repeating the check with them merged from the start.`
+      );
+      groups = m.orcidGroups;
+    }
   } catch (e) {
     if (e.name === "AbortError" || e.message === "budget") {
       ui.log(
@@ -4839,7 +5057,8 @@ async function orcidCheck(client, seedOrcs, side, o, res, nMain = 0) {
       if (m.merged && m.merged.has(x)) onPaths.set(x, {name: m.names.get(x) || x, records: m.merged.get(x)});
   const out = {
     done: true,
-    incomplete: summarizeIncomplete((client.incomplete || []).slice(nMain)),
+    unsettled,
+    incomplete: summarizeIncomplete((client.incomplete || []).slice(nInc)),
     requests: client.requests - r0,
     gmsn: m.gmsn,
     newman: m.newman ?? null,
@@ -5226,6 +5445,12 @@ function orcidCheckHtml(res) {
       `): it is not known whether OpenAlex records that share an ORCID ` +
       `would lower these numbers.</div>`
     );
+  if (!c.differs && c.unsettled)
+    return (
+      `<div class="note">ORCID check not settled: after ${ORCID_CHECK_PASSES} passes, OpenAlex records ` +
+      `that share an ORCID were still coming to light, so it is not known whether merging them ` +
+      `would lower these numbers.</div>`
+    );
   if (!c.differs && c.incomplete)
     return (
       `<div class="note">ORCID check incomplete: OpenAlex returned ` +
@@ -5236,7 +5461,9 @@ function orcidCheckHtml(res) {
   if (!c.differs)
     return (
       `<p class="hint">ORCID check: treating OpenAlex records that ` +
-      `share an ORCID as one person would not change these numbers.</p>`
+      `share an ORCID as one person would not change these numbers. The check covers only merges by an ` +
+      `ORCID OpenAlex shows, and leaves Sheldrick's co-authors as the curated list defines them ` +
+      `(<a href="#explain" class="openExplain">details</a>).</p>`
     );
   const parts = [];
   if (c.lowerGmsn)
@@ -5272,6 +5499,12 @@ function orcidCheckHtml(res) {
     `
     ` +
     String(ppl ? `Records to check:<ul class="mergeList">${ppl}</ul>` : "") +
+    String(
+      c.unsettled
+        ? `\n    The check had not settled after ${ORCID_CHECK_PASSES} passes (records sharing an ORCID ` +
+            `were still coming to light), so with further merges the numbers could be lower still.`
+        : ""
+    ) +
     `
     The numbers above do not use these merges, because OpenAlex ` +
     `sometimes attaches an ORCID to the wrong person's record, which ` +
@@ -5351,15 +5584,46 @@ function collapseCands(res) {
   const who = res && res.target && res.target.name ? res.target.name : "the selected person";
   const recs =
     res && !res.from_curated_list_only && selected.length > 1 ? ` (${selected.length} OpenAlex records)` : "";
+  candFoldedByUser = false;
+  foldCands(`<span>Calculated for <b>${esc(who)}</b>${recs}.</span>`, n);
+}
+// True while the summary line only says the list was hidden by hand (nothing calculated yet):
+// opening the list again then removes that line instead of leaving a stale "hidden" message.
+let candFoldedByUser = false;
+// "Hide the 3 candidates" / "Show the 3 candidates" (one candidate: "Hide the candidate").
+const candLabel = (verb, n) => (n === 1 ? `${verb} the candidate` : `${verb} the ${fmt(n)} candidates`);
+// Folds the candidate list into one summary line with a button that opens it again.
+function foldCands(summaryHtml, n) {
+  const box = $("cands");
   $("candSummary").innerHTML =
-    `<span>Calculated for <b>${esc(who)}</b>${recs}.</span>` +
+    summaryHtml +
     (n
-      ? `<button type="button" class="toggle" id="candShow" aria-pressed="false" ` +
-        `aria-expanded="false" aria-controls="candList">Show the candidates</button>`
+      ? `<button type="button" class="toggle" id="candShow" aria-expanded="false" ` +
+        `aria-controls="candList">${esc(candLabel("Show", n))}</button>`
       : "");
   box.classList.add("collapsed", "foldable");
   const b = $("candShow");
-  if (b) b.addEventListener("click", () => (box.classList.contains("collapsed") ? expandCands() : hideCands()));
+  if (b) b.addEventListener("click", expandCands);
+  syncCandBtn();
+}
+// The "Hide the N candidates" button next to "Tick all records": folds the list before or after
+// a calculation; the summary line says what is ticked and offers to show the list again.
+function hideCandsByUser() {
+  const box = $("cands");
+  if (!box) return;
+  const n = $("candList").querySelectorAll("input[type=checkbox]").length;
+  if (box.classList.contains("foldable") && $("candShow")) {
+    hideCands();
+    return;
+  }
+  const k = selected.length;
+  candFoldedByUser = true;
+  foldCands(
+    `<span>${n === 1 ? "1 candidate" : fmt(n) + " candidates"} hidden; ` +
+      String(k ? `${fmt(k)} ticked.` : "none ticked yet.") +
+      `</span>`,
+    n
+  );
 }
 // The candidates button is two-state: pressed while the list is open, raised while it is hidden.
 function syncCandBtn() {
@@ -5367,13 +5631,19 @@ function syncCandBtn() {
     b = $("candShow");
   if (!box || !b) return;
   const open = !box.classList.contains("collapsed");
-  b.setAttribute("aria-pressed", String(open));
   b.setAttribute("aria-expanded", String(open));
-  b.textContent = open ? "Hide the candidates" : "Show the candidates";
+  // While the list is open, its own "Hide the N candidates" button folds it; the summary's
+  // "Show" button is only needed while it is folded.
+  b.hidden = open;
 }
 function expandCands() {
   const box = $("cands");
   if (box) box.classList.remove("collapsed");
+  if (box && candFoldedByUser) {
+    candFoldedByUser = false;
+    box.classList.remove("foldable");
+    $("candSummary").innerHTML = "";
+  }
   syncCandBtn();
 }
 // Once a calculation has folded the list, it can be reopened ("Show all candidates") and folded
@@ -5396,15 +5666,29 @@ function incompleteNote(inc, n) {
     String(
       n === null
         ? "a chain to Sheldrick may exist among them."
-        : `the true GMSN may be lower than ${n}, the Newman distance and ` +
-            `vintage may be ` +
-            `lower too, and the chain counts are minimums.`
+        : `the true GMSN may be lower than ${n}. The Newman distance, vintage and chain counts ` +
+            `below are provisional: they describe the ${n}-step chains found among the works that ` +
+            `could be read, and a shorter chain through a missing work would replace them with ` +
+            `values that may be higher or lower.`
     ) +
     (` Running the calculation again may complete it (replies already ` + `received in this tab are `) +
     `reused)` +
     String(rateSeen && !rateSeen.keyUsed ? "; a free API key under Options also helps." : ".") +
     `</div>`
   );
+}
+// The vintage as shown: exact, or a range when some joint works on the chains have no publication
+// year. For an incomplete search the same value is shown and labelled provisional by the caller:
+// a shorter chain through a missing work could have a later vintage as well as an earlier one.
+function vintageText(res, provisional = false) {
+  const hi = res.vintage ?? null,
+    lo = res.vintageNotBefore ?? null;
+  if (res.vintageExact !== false || hi === lo) return hi === null ? "–" : String(hi);
+  if (hi !== null && lo !== null) return lo + "–" + hi;
+  // In words for a provisional value, so the sign is not read as a bound on the true vintage.
+  if (hi !== null) return provisional ? "by " + hi : "≤ " + hi;
+  if (lo !== null) return provisional ? lo + " or later" : "≥ " + lo;
+  return "unknown";
 }
 function renderResult(res, o) {
   mergedNow = res.merged || null;
@@ -5446,8 +5730,12 @@ function renderResult(res, o) {
           ? `At most ${n} co-authorship steps from George M. Sheldrick: the ` + `search was incomplete.`
           : `${n} co-authorship steps from George M. Sheldrick.`;
   // An incomplete search (works OpenAlex reported but did not return) can only have missed
-  // links: the GMSN, Newman distance and vintage found are upper bounds, the counts minimums.
+  // links, so the GMSN found is an upper bound. Nothing similar holds for the other figures: a
+  // missing link can create a shorter chain whose Newman distance, vintage and chain counts may be
+  // higher or lower than those of the longer chains found. They are shown without inequality
+  // signs, as provisional values computed from the works that could be read.
   const partial = n > 1 && !!inc;
+  const prov = partial ? " Provisional: computed from the works that could be read." : "";
   let html =
     `<h2 class="heroName">${esc(res.target.name)}</h2><div class="hero"><div ` +
     (`class="num" aria-label="GMSN ${partial ? "at most" : "="} ${n}"><span ` + `class="lbl">GMSN `) +
@@ -5461,15 +5749,22 @@ function renderResult(res, o) {
     html +=
       `<div class="metrics">
       <div class="metric"><div class="k">Newman ` +
-      `distance</div><div class="v">${partial ? "≤ " : ""}${nfmt(res.newman)}</div><div ` +
-      `class="ks">for shortest chain</div>
+      `distance</div><div class="v">${nfmt(res.newman)}</div><div ` +
+      `class="ks">${partial ? "provisional" : "for shortest chain"}</div>
         <div class="d">Sum ` +
-      `of 1/strength along the closest ${n}-step chain. Lower = closer.</div></div>
+      `of 1/strength along the closest ${n}-step chain. Lower = closer.${prov}</div></div>
  ` +
-      `     <div class="metric"><div class="k">Vintage</div><div class="v">${partial ? "≤ " : ""}${esc(res.vintage ?? "–")}</div>
+      `     <div class="metric"><div class="k">Vintage</div><div class="v">${esc(vintageText(res, partial))}</div>
  ` +
       `       <div class="d">First year a ${n}-step chain to Sheldrick ` +
-      `existed.</div></div>
+      `existed.` +
+      String(
+        res.vintageExact === false && res.vintage !== res.vintageNotBefore
+          ? " Some joint works on these chains have no publication year, so only the range shown is known."
+          : ""
+      ) +
+      prov +
+      `</div></div>
       ` +
       String(
         n === 1
@@ -5478,16 +5773,17 @@ function renderResult(res, o) {
         <div class="d">Publications ` +
               `with Sheldrick on the curated list. More = more robustly connected.</div></div>`
           : `<div class="metric"><div class="k">Chains of people</div><div ` +
-              `class="v">${partial ? "≥ " : ""}${fmt(res.nPeopleChains)}</div>
+              `class="v">${fmt(res.nPeopleChains)}</div>
  ` +
               `       <div class="d">Different ${n}-step sequences of co-authors ` +
-              `to Sheldrick. More = more independent routes.</div></div>
+              `to Sheldrick. More = more alternative routes, though chains can share ` +
+              `people and links.${prov}</div></div>
   ` +
               `    <div class="metric"><div class="k">Paper routes</div><div ` +
-              `class="v">${partial ? "≥ " : ""}${fmt(res.nChains)}</div>
+              `class="v">${fmt(res.nChains)}</div>
   ` +
               `      <div class="d">The same chains counted paper by paper: ` +
-              `each link multiplies by its joint works.</div></div>`
+              `each link multiplies by its joint works.${prov}</div></div>`
       ) +
       `
     </div>`;
@@ -5521,7 +5817,23 @@ function renderResult(res, o) {
       `<div class="path"><h3>` +
       String(res.paths.length > 1 ? `Chain ${i + 1}` : "Chain") +
       ` · Newman distance ${nfmt(p.newman)}` +
-      String(p.vintage ? ` · complete since ${esc(p.vintage)}` : "") +
+      String(
+        p.vintage && p.vintageNotBefore === undefined
+          ? ` · complete since ${esc(p.vintage)}`
+          : p.vintage
+            ? ` · complete by ${esc(p.vintage)}` +
+              String(
+                p.vintageNotBefore !== null && p.vintageNotBefore !== p.vintage
+                  ? `, not before ${esc(p.vintageNotBefore)}`
+                  : ""
+              ) +
+              ` (some joint works have no year)`
+            : p.ids.length > 1
+              ? p.vintageNotBefore
+                ? ` · complete in ${esc(p.vintageNotBefore)} or later (a link has no dated joint work)`
+                : " · year of completion unknown (a link has no dated joint work)"
+              : ""
+      ) +
       `</h3><ol class="chain">`;
     p.ids.forEach((id, j) => {
       const end = j === 0 || id === GMS;
@@ -5535,7 +5847,9 @@ function renderResult(res, o) {
         const s = p.steps[j];
         html +=
           `<li class="link"><span class="w">${s.w} joint work${s.w > 1 ? "s" : ""}</span> ` +
-          `· strength ${nfmt(s.nw)}${s.fy ? ` · since ${esc(s.fy)}` : ""}`;
+          `· strength ${nfmt(s.nw)}` +
+          String(s.fy ? (s.undated ? ` · by ${esc(s.fy)}` : ` · since ${esc(s.fy)}`) : "") +
+          String(s.undated ? ` · ${s.undated} without a year` : "");
         if (s.curated) html += `<div>${curatedText(s.curated, o.count)}</div>`;
         if (s.works.length)
           html +=
@@ -5639,7 +5953,7 @@ function downloads() {
     `for citation or checking</button></div><div id="exportPanel" ` +
     `hidden>
     <p>For quoting or auditing a result. The JSON holds ` +
-    `the answer with the exact chain counts, up to five representative ` +
+    `the answer with the chain counts (exact for the network searched), up to five representative ` +
     `shortest chains with their papers, and the data version, fingerprint ` +
     `and OpenAlex retrieval window it rests on. The CSV holds the ` +
     `co-authorship network the search explored, with every link that ` +
@@ -5696,16 +6010,30 @@ function bindDownloads() {
       gmsn: r.gmsn,
       newman_distance: r.newman,
       vintage: r.vintage,
+      vintage_exact: r.gmsn === null || r.gmsn === 0 ? null : r.vintageExact !== false && !(r.gmsn > 1 && r.incomplete),
+      vintage_not_before: r.vintageExact === false ? (r.vintageNotBefore ?? null) : undefined,
       n_people_chains: bigJson(r.nPeopleChains),
       n_paper_routes: bigJson(r.nChains),
       exact: r.gmsn === null ? false : r.gmsn <= 1 || !r.incomplete,
+      exact_note:
+        "exact refers to the network searched: the co-authorship graph made of the works successfully " +
+        "retrieved from OpenAlex, with links to Sheldrick from the curated bibliography. It is not a claim " +
+        "about works OpenAlex lacks or misattributes.",
+      values_provisional: r.gmsn !== null && r.gmsn > 1 && !!r.incomplete,
       search_incomplete: r.incomplete
         ? {
             ...r.incomplete,
             note:
-              "OpenAlex returned fewer works than it reported for some queries: " +
-              "the GMSN, Newman " +
-              "distance and vintage are upper bounds, the chain counts minimums."
+              "OpenAlex returned fewer works than it reported for some queries. " +
+              String(
+                r.gmsn === null
+                  ? "No chain was found in the works that could be read; one may exist through the missing works. "
+                  : "The GMSN is an upper bound. "
+              ) +
+              "newman_distance, vintage, n_people_chains and n_paper_routes are provisional values " +
+              "computed from the works that could be read; they are not bounds, because a shorter chain " +
+              "through a missing work could have a higher or lower Newman distance, a later or earlier " +
+              "vintage and fewer or more chains."
           }
         : null,
       max_authors: r.maxAuthors || null,
@@ -5725,7 +6053,10 @@ function bindDownloads() {
                 : bigJson(r.orcidCheck.nPeopleChains),
             note:
               "Search repeated with OpenAlex author records that share an ORCID " +
-              "taken as one person. Not used for the reported numbers."
+              "taken as one person. Not used for the reported numbers. Covers only merges through an ORCID " +
+              "OpenAlex shows on the records reached; co-authors on the curated list keep the list's identities " +
+              "(never merged with each other or with records the list does not tie to them); records OpenAlex " +
+              "wrongly merged are not split. It does not establish that all OpenAlex identity errors are resolved."
           }
         : null,
       representative_paths_note:
@@ -5777,7 +6108,9 @@ function bindDownloads() {
     let refTotal = 0;
     if (refs) for (const [e, d] of r.E || []) refTotal += chainKeys.has(e) ? 0 : d.ev ? d.ev.length : 0;
     const offChainRefs = refs && refTotal <= REF_ROWS_MAX;
-    const head = "source_id,source,target_id,target,joint_works,newman_strength,first_year,on_shortest_chain,data_from";
+    const head =
+      "source_id,source,target_id,target,joint_works,newman_strength,first_year,undated_joint_works," +
+      "on_shortest_chain,data_from";
     const oa = openalexProvenance(r);
     const lines = [
       `# GMSN calculator ${pageVersion() || ""} - explored co-authorship ` + `network`,
@@ -5797,6 +6130,9 @@ function bindDownloads() {
         String(r.gmsn === null ? "-" : fmt(r.nPeopleChains)) +
         `; paper routes: ` +
         String(r.gmsn === null ? "-" : fmt(r.nChains)) +
+        String(
+          r.gmsn > 1 && r.incomplete ? " (provisional: computed from the works that could be read, not bounds)" : ""
+        ) +
         `; definition: ${DEFS[r.definition]}`,
       `# Sheldrick reference set: ${PROV.dataset} v${PROV.version} ` +
         `(closed historical dataset; extracted ${PROV.extracted}, cleaned ` +
@@ -5809,6 +6145,8 @@ function bindDownloads() {
           `request(s) for this result, ${oa.requests_in_this_browser_tab} ` +
           `in this browser tab`,
       `# ${REPRODUCIBILITY}`,
+      `# first_year: the earliest joint work with a publication year; when undated_joint_works > 0 the ` +
+        `pair may have first worked together earlier`,
       `# computed ` +
         String((r.computedAt || new Date()).toISOString()) +
         String(
@@ -5872,6 +6210,7 @@ function bindDownloads() {
           s.w,
           (+s.nw).toFixed(4),
           q(s.fy ?? ""),
+          s.undated || 0,
           "yes",
           s.curated ? "curated list" : "OpenAlex"
         ],
@@ -5893,6 +6232,7 @@ function bindDownloads() {
           d.w,
           d.nw.toFixed(4),
           q(d.fy ?? ""),
+          d.nu || 0,
           "no",
           "OpenAlex"
         ],
@@ -6084,6 +6424,7 @@ document.addEventListener("click", e => {
     })
     .join("");
 })();
+$("candHide").addEventListener("click", hideCandsByUser);
 $("tickAll").addEventListener("change", e => {
   $("candList")
     .querySelectorAll("input[type=checkbox]")
